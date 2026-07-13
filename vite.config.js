@@ -78,7 +78,7 @@ export default defineConfig({
       },
     },
   },
-  // define: {
-  //   global: "globalThis",
-  // },
+  define: {
+    global: "globalThis",
+  },
 });
