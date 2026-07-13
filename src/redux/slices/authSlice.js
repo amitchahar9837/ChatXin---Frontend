@@ -23,7 +23,7 @@ export const checkAuth = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.response?.data?.message);
     }
-  }
+  },
 );
 
 export const signup = createAsyncThunk(
@@ -40,7 +40,7 @@ export const signup = createAsyncThunk(
       toast.error(message);
       return rejectWithValue(err.response?.data);
     }
-  }
+  },
 );
 
 export const login = createAsyncThunk(
@@ -53,22 +53,26 @@ export const login = createAsyncThunk(
       dispatch(bootSocket(user._id));
       return user;
     } catch (err) {
+      console.log(err);
       const message = err.response?.data?.message || "Login failed";
       toast.error(message);
       return rejectWithValue(err.response?.data);
     }
-  }
+  },
 );
 
-export const logout = createAsyncThunk("auth/logout", async (_, { dispatch }) => {
-  try {
-    await axiosInstance.post("/auth/logout");
-  } finally {
-    disconnectSocket();
-    dispatch(setOnlineUsers([]));
-    toast.success("Logged out");
-  }
-});
+export const logout = createAsyncThunk(
+  "auth/logout",
+  async (_, { dispatch }) => {
+    try {
+      await axiosInstance.post("/auth/logout");
+    } finally {
+      disconnectSocket();
+      dispatch(setOnlineUsers([]));
+      toast.success("Logged out");
+    }
+  },
+);
 
 export const updateProfile = createAsyncThunk(
   "auth/updateProfile",
@@ -82,7 +86,7 @@ export const updateProfile = createAsyncThunk(
       toast.error(message);
       return rejectWithValue(message);
     }
-  }
+  },
 );
 
 // Socket connect karke online-users listener attach karta hai
