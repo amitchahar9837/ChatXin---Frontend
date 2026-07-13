@@ -1,0 +1,83 @@
+@import "tailwindcss";
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@theme {
+  /* --- Colors Configuration --- */
+  --color-ink: #12131c;
+  --color-surface: #1a1c29;
+  --color-surface-2: #232537;
+  --color-surface-3: #2c2f45;
+
+  --color-marigold: #f2a93b;
+  --color-marigold-dim: #b87f2a;
+
+  --color-teal: #35c5b0;
+  --color-teal-dim: #227566;
+
+  --color-ink-text: #edebf5;
+  --color-muted: #8d8fa6;
+
+  /* --- Font Families --- */
+  --font-display: "Sora", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* --- Custom Keyframes & Animations --- */
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgba(53, 197, 176, 0.5);
+    }
+    100% {
+      box-shadow: 0 0 0 8px rgba(53, 197, 176, 0);
+    }
+  }
+  @keyframes bounce-dot {
+    0%,
+    80%,
+    100% {
+      transform: scale(0.6);
+      opacity: 0.5;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  --animate-pulse-ring: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-bounce-dot: bounce-dot 1.2s ease-in-out infinite;
+}
+
+body {
+  margin: 0;
+}
