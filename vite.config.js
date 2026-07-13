@@ -3,33 +3,60 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["/favicon/favicon.ico"],
+      includeAssets: [
+        "favicon/favicon.ico",
+        "favicon/apple-touch-icon.png",
+        "favicon/favicon.svg",
+      ],
       manifest: {
         name: "ChatXin",
         short_name: "ChatXin",
         description: "Connect. Chat. Instantly.",
         theme_color: "#f2a93b",
-        background_color: "#fff",
+        background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
         icons: [
           {
-            src: "/favicon/android-icon-192x192.png",
+            src: "favicon/web-app-manifest-192x192.png",
             sizes: "192x192",
             type: "image/png",
+            purpose: "any",
           },
           {
-            src: "/favicon/android-icon-512x512.png",
+            src: "favicon/web-app-manifest-512x512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "favicon/web-app-manifest-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+        screenshots: [
+          {
+            src: "favicon/web-app-manifest-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            form_factor: "wide",
+            label: "ChatXin Desktop",
+          },
+          {
+            src: "favicon/web-app-manifest-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "ChatXin Mobile",
           },
         ],
       },
