@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Peer from "simple-peer";
 import { getSocket } from "../lib/socket";
 
@@ -84,6 +84,7 @@ export const useVideoCall = (myUserId) => {
 
   // ---- Receiver side ----
   const listenForIncomingCalls = useCallback(() => {
+    if (!socket) return;
     socket.on("incoming-call", ({ fromUserId, offer, callerInfo }) => {
       setIncomingCall({ fromUserId, offer, callerInfo });
       setCallStatus("ringing");
