@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Video } from "lucide-react";
 import Avatar from "../ui/Avatar";
 import Spinner from "../ui/Spinner";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import TypingIndicator from "./TypingIndicator";
 import { getMessages, setSelectedUser } from "../../redux/slices/chatSlice";
+import { useVideoCallContext } from "./VideoCallContext";
 
 export default function ChatWindow() {
   const dispatch = useDispatch();
@@ -18,6 +19,7 @@ export default function ChatWindow() {
     onlineUsers,
     typingUsers,
   } = useSelector((state) => state.chat);
+  const { callUser, callStatus } = useVideoCallContext();
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function ChatWindow() {
           name={selectedUser.fullName}
           online={isOnline}
         />
-        <div>
+        <div className="flex-1">
           <p className="font-display font-semibold text-sm">
             {selectedUser.fullName}
           </p>
@@ -65,6 +67,19 @@ export default function ChatWindow() {
             {isOnline ? "Online" : "Offline"}
           </p>
         </div>
+        <button
+          onClick={() =>
+            callUser(selectedUser._id, {
+              name: selectedUser.fullName,
+              profilePic: selectedUser.profilePic,
+            })
+          }
+          disabled={!isOnline || callStatus !== "idle"}
+          className="p-2 rounded-full hover:bg-surface-2 text-muted hover:text-teal disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title={isOnline ? "Start video call" : "User is offline"}
+        >
+          <Video size={20} />
+        </button>
       </div>
 
       {/* Messages */}
