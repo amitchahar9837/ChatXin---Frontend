@@ -53,7 +53,6 @@ export const login = createAsyncThunk(
       dispatch(bootSocket(user._id));
       return user;
     } catch (err) {
-      console.log(err);
       const message = err.response?.data?.message || "Login failed";
       toast.error(message);
       return rejectWithValue(err.response?.data);

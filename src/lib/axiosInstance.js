@@ -1,10 +1,9 @@
 import axios from "axios";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 export const axiosInstance = axios.create({
-  baseURL:
-    import.meta.env.MODE === "development"
-      ? "/api"
-      : "https://chatxin-backend.onrender.com/api",
+  baseURL: import.meta.env.VITE_MODE === "development" ? "/api" : BACKEND_URL,
   withCredentials: true,
 });
 

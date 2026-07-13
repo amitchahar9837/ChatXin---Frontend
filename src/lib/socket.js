@@ -1,9 +1,10 @@
 import { io } from "socket.io-client";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const SOCKET_URL =
-  import.meta.env.MODE === "development"
+  import.meta.env.VITE_MODE === "development"
     ? "http://localhost:3001"
-    : import.meta.env.BACKEND_URL;
+    : BACKEND_URL;
 
 let socket = null;
 
