@@ -1,20 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Peer from "simple-peer";
 import { getSocket } from "../lib/socket";
-
-const ICE_SERVERS = [
-  { urls: "stun:stun.l.google.com:19302" },
-  {
-    urls: "turn:openrelay.metered.ca:80",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-];
+import { axiosInstance } from "../lib/axiosInstance";
 
 export const useVideoCall = (myUserId) => {
   const [callStatus, setCallStatus] = useState("idle");
@@ -24,7 +11,7 @@ export const useVideoCall = (myUserId) => {
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const otherUserIdRef = useRef(null);
-  const socketRef = useRef(null); // 👈 ab ref me rakho, top-level const nahi
+  const socketRef = useRef(null);
 
   const getLocalStream = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -34,6 +21,16 @@ export const useVideoCall = (myUserId) => {
     localStreamRef.current = stream;
     if (localVideoRef.current) localVideoRef.current.srcObject = stream;
     return stream;
+  };
+
+  const getIceServers = async () => {
+    try {
+      const res = await axiosInstance.get("/turn-credentials");
+      return [{ urls: "stun:stun.l.google.com:19302" }, ...res.data];
+    } catch (err) {
+      console.log("⚠️ TURN fetch failed, using STUN only fallback");
+      return [{ urls: "stun:stun.l.google.com:19302" }];
+    }
   };
 
   const callUser = useCallback(
@@ -47,11 +44,13 @@ export const useVideoCall = (myUserId) => {
       const stream = await getLocalStream();
       setCallStatus("calling");
 
+      const iceServers = await getIceServers();
+
       const peer = new Peer({
         initiator: true,
         trickle: false,
         stream,
-        config: { iceServers: ICE_SERVERS },
+        config: { iceServers },
       });
 
       peer.on("signal", (offer) => {
@@ -105,11 +104,13 @@ export const useVideoCall = (myUserId) => {
     if (!incomingCall || !socket) return;
     const stream = await getLocalStream();
 
+    const iceServers = await getIceServers();
+
     const peer = new Peer({
       initiator: false,
       trickle: false,
       stream,
-      config: { iceServers: ICE_SERVERS },
+      config: { iceServers },
     });
 
     peer.on("signal", (answer) => {
