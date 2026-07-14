@@ -3,7 +3,7 @@ import { useVideoCallContext } from "./chat/VideoCallContext";
 export const CallStatusOverlay = () => {
   const { callStatus, endCall } = useVideoCallContext();
 
-  if (callStatus === "idle") return null;
+  if (callStatus === "idle" || callStatus === "ringing") return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">

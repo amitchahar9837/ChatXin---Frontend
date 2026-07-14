@@ -2,8 +2,9 @@ import { useVideoCallContext } from "./chat/VideoCallContext";
 
 export const IncomingCallModal = () => {
   const { incomingCall, acceptCall, rejectCall } = useVideoCallContext();
+  console.log("🔔 IncomingCallModal rendered, incomingCall:", incomingCall);
 
-  if (!incomingCall) return null; // 👈 agar ye hamesha null hi reh raha hai, to modal kabhi render nahi hoga
+  if (!incomingCall) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
