@@ -24,8 +24,7 @@ export const useVideoCall = (myUserId) => {
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const otherUserIdRef = useRef(null);
-
-  const socket = getSocket();
+  const socketRef = useRef(null); // 👈 ab ref me rakho, top-level const nahi
 
   const getLocalStream = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -37,25 +36,15 @@ export const useVideoCall = (myUserId) => {
     return stream;
   };
 
-  // ---- Caller side ----
   const callUser = useCallback(
     async (toUserId, callerInfo) => {
-      console.log(
-        "📞 callUser triggered, toUserId:",
-        toUserId,
-        "socket connected:",
-        socket?.connected,
-        "socket id:",
-        socket?.id,
-      );
-      otherUserIdRef.current = toUserId;
-      let stream;
-      try {
-        stream = await getLocalStream();
-      } catch {
-        otherUserIdRef.current = null;
+      const socket = socketRef.current || getSocket();
+      if (!socket) {
+        console.log("⚠️ Socket not ready, cannot start call");
         return;
       }
+      otherUserIdRef.current = toUserId;
+      const stream = await getLocalStream();
       setCallStatus("calling");
 
       const peer = new Peer({
@@ -66,7 +55,6 @@ export const useVideoCall = (myUserId) => {
       });
 
       peer.on("signal", (offer) => {
-        console.log("📡 signal generated, emitting call-user", offer.type);
         socket.emit("call-user", {
           toUserId,
           offer,
@@ -75,55 +63,31 @@ export const useVideoCall = (myUserId) => {
         });
       });
 
-      peer.on("connect", () => console.log("✅ peer connected (data channel)"));
-      peer.on("iceStateChange", (state) => console.log("🧊 ICE state:", state));
       peer.on("stream", (remoteStream) => {
-        console.log("🎥 remote stream received");
         if (remoteVideoRef.current)
           remoteVideoRef.current.srcObject = remoteStream;
         setCallStatus("connected");
       });
 
-      peer.on("close", () => {
-        console.log("❌ peer closed");
-        endCall();
-      });
-      peer.on("error", (err) => {
-        console.log("❌ peer error:", err);
-        endCall();
-      });
+      peer.on("close", () => endCall());
+      peer.on("error", () => endCall());
 
       peerRef.current = peer;
 
       socket.once("call-accepted", ({ answer }) => {
-        console.log("✅ call-accepted received");
         peer.signal(answer);
       });
 
       socket.on("ice-candidate", ({ candidate }) => {
-        console.log("🧊 ice-candidate received from remote");
         if (candidate) peer.signal(candidate);
       });
     },
     [myUserId],
   );
 
-  // ---- Receiver side ----
-  const listenForIncomingCalls = useCallback(() => {
-    if (!socket) return;
-    socket.on("incoming-call", ({ fromUserId, offer, callerInfo }) => {
-      console.log("📥 incoming-call event received from:", fromUserId);
-      setIncomingCall({ fromUserId, offer, callerInfo });
-      setCallStatus("ringing");
-      otherUserIdRef.current = fromUserId;
-    });
-
-    socket.on("call-ended", () => endCall());
-    socket.on("call-rejected", () => endCall());
-  }, []);
-
   const acceptCall = useCallback(async () => {
-    if (!incomingCall) return;
+    const socket = socketRef.current || getSocket();
+    if (!incomingCall || !socket) return;
     const stream = await getLocalStream();
 
     const peer = new Peer({
@@ -152,7 +116,8 @@ export const useVideoCall = (myUserId) => {
   }, [incomingCall]);
 
   const rejectCall = useCallback(() => {
-    if (incomingCall) {
+    const socket = socketRef.current || getSocket();
+    if (incomingCall && socket) {
       socket.emit("reject-call", { toUserId: incomingCall.fromUserId });
     }
     setIncomingCall(null);
@@ -160,7 +125,8 @@ export const useVideoCall = (myUserId) => {
   }, [incomingCall]);
 
   const endCall = useCallback(() => {
-    if (otherUserIdRef.current) {
+    const socket = socketRef.current || getSocket();
+    if (otherUserIdRef.current && socket) {
       socket.emit("end-call", { toUserId: otherUserIdRef.current });
     }
     peerRef.current?.destroy();
@@ -171,14 +137,47 @@ export const useVideoCall = (myUserId) => {
     setCallStatus("idle");
   }, []);
 
+  // 👇 YAHI wo naya useEffect hai jo poll karta hai jab tak socket ban na jaaye
   useEffect(() => {
-    listenForIncomingCalls();
-    return () => {
-      socket.off("incoming-call");
-      socket.off("call-ended");
-      socket.off("call-rejected");
+    let interval;
+    let attached = false;
+
+    const trySetup = () => {
+      const s = getSocket();
+      if (s && !attached) {
+        socketRef.current = s;
+        console.log("✅ Socket found, attaching listeners", s.id);
+
+        s.on("incoming-call", ({ fromUserId, offer, callerInfo }) => {
+          console.log("📥 incoming-call RECEIVED:", fromUserId);
+          setIncomingCall({ fromUserId, offer, callerInfo });
+          setCallStatus("ringing");
+          otherUserIdRef.current = fromUserId;
+        });
+
+        s.on("call-ended", () => endCall());
+        s.on("call-rejected", () => endCall());
+
+        attached = true;
+        clearInterval(interval);
+      } else if (!s) {
+        console.log("⏳ Socket not ready yet, retrying...");
+      }
     };
-  }, [listenForIncomingCalls]);
+
+    trySetup();
+    interval = setInterval(trySetup, 500);
+
+    return () => {
+      clearInterval(interval);
+      const s = socketRef.current;
+      if (s) {
+        s.off("incoming-call");
+        s.off("call-ended");
+        s.off("call-rejected");
+      }
+    };
+  }, [myUserId]);
 
   return {
     callStatus,
@@ -189,6 +188,5 @@ export const useVideoCall = (myUserId) => {
     acceptCall,
     rejectCall,
     endCall,
-    listenForIncomingCalls,
   };
 };
