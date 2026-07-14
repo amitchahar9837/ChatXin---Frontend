@@ -144,7 +144,7 @@ export const useVideoCall = (myUserId) => {
 
     const trySetup = () => {
       const s = getSocket();
-      console.log("socket:", s?.id);
+      console.log("socket:", s);
       console.log("attached:", attached);
       if (s && !attached) {
         socketRef.current = s;
