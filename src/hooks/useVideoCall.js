@@ -49,7 +49,7 @@ export const useVideoCall = (myUserId) => {
 
       const peer = new Peer({
         initiator: true,
-        trickle: true,
+        trickle: false,
         stream,
         config: { iceServers: ICE_SERVERS },
       });
@@ -92,7 +92,7 @@ export const useVideoCall = (myUserId) => {
 
     const peer = new Peer({
       initiator: false,
-      trickle: true,
+      trickle: false,
       stream,
       config: { iceServers: ICE_SERVERS },
     });

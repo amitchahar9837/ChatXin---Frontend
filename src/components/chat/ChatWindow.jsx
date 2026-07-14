@@ -70,8 +70,8 @@ export default function ChatWindow() {
         <button
           onClick={() =>
             callUser(selectedUser._id, {
-              name: selectedUser.fullName,
-              profilePic: selectedUser.profilePic,
+              name: authUser.fullName,
+              profilePic: authUser.profilePic,
             })
           }
           disabled={!isOnline || callStatus !== "idle"}
