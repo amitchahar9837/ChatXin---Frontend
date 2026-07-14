@@ -81,6 +81,21 @@ export const useVideoCall = (myUserId) => {
       socket.on("ice-candidate", ({ candidate }) => {
         if (candidate) peer.signal(candidate);
       });
+
+      peer.on("connect", () => console.log("✅ Peer data channel connected"));
+
+      peer._pc?.addEventListener("iceconnectionstatechange", () => {
+        console.log("🧊 ICE connection state:", peer._pc.iceConnectionState);
+      });
+
+      peer._pc?.addEventListener("connectionstatechange", () => {
+        console.log("🔗 Connection state:", peer._pc.connectionState);
+      });
+
+      peer.on("error", (err) => {
+        console.log("❌ Peer ERROR:", err.message || err);
+        endCall();
+      });
     },
     [myUserId],
   );
@@ -105,6 +120,21 @@ export const useVideoCall = (myUserId) => {
       if (remoteVideoRef.current)
         remoteVideoRef.current.srcObject = remoteStream;
       setCallStatus("connected");
+    });
+
+    peer.on("connect", () => console.log("✅ Peer data channel connected"));
+
+    peer._pc?.addEventListener("iceconnectionstatechange", () => {
+      console.log("🧊 ICE connection state:", peer._pc.iceConnectionState);
+    });
+
+    peer._pc?.addEventListener("connectionstatechange", () => {
+      console.log("🔗 Connection state:", peer._pc.connectionState);
+    });
+
+    peer.on("error", (err) => {
+      console.log("❌ Peer ERROR:", err.message || err);
+      endCall();
     });
 
     peer.on("close", () => endCall());
