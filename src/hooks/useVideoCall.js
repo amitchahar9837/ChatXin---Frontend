@@ -40,8 +40,22 @@ export const useVideoCall = (myUserId) => {
   // ---- Caller side ----
   const callUser = useCallback(
     async (toUserId, callerInfo) => {
+      console.log(
+        "📞 callUser triggered, toUserId:",
+        toUserId,
+        "socket connected:",
+        socket?.connected,
+        "socket id:",
+        socket?.id,
+      );
       otherUserIdRef.current = toUserId;
-      const stream = await getLocalStream();
+      let stream;
+      try {
+        stream = await getLocalStream();
+      } catch {
+        otherUserIdRef.current = null;
+        return;
+      }
       setCallStatus("calling");
 
       const peer = new Peer({
@@ -52,6 +66,7 @@ export const useVideoCall = (myUserId) => {
       });
 
       peer.on("signal", (offer) => {
+        console.log("📡 signal generated, emitting call-user", offer.type);
         socket.emit("call-user", {
           toUserId,
           offer,
@@ -60,22 +75,33 @@ export const useVideoCall = (myUserId) => {
         });
       });
 
+      peer.on("connect", () => console.log("✅ peer connected (data channel)"));
+      peer.on("iceStateChange", (state) => console.log("🧊 ICE state:", state));
       peer.on("stream", (remoteStream) => {
+        console.log("🎥 remote stream received");
         if (remoteVideoRef.current)
           remoteVideoRef.current.srcObject = remoteStream;
         setCallStatus("connected");
       });
 
-      peer.on("close", () => endCall());
-      peer.on("error", () => endCall());
+      peer.on("close", () => {
+        console.log("❌ peer closed");
+        endCall();
+      });
+      peer.on("error", (err) => {
+        console.log("❌ peer error:", err);
+        endCall();
+      });
 
       peerRef.current = peer;
 
       socket.once("call-accepted", ({ answer }) => {
+        console.log("✅ call-accepted received");
         peer.signal(answer);
       });
 
       socket.on("ice-candidate", ({ candidate }) => {
+        console.log("🧊 ice-candidate received from remote");
         if (candidate) peer.signal(candidate);
       });
     },
@@ -86,6 +112,7 @@ export const useVideoCall = (myUserId) => {
   const listenForIncomingCalls = useCallback(() => {
     if (!socket) return;
     socket.on("incoming-call", ({ fromUserId, offer, callerInfo }) => {
+      console.log("📥 incoming-call event received from:", fromUserId);
       setIncomingCall({ fromUserId, offer, callerInfo });
       setCallStatus("ringing");
       otherUserIdRef.current = fromUserId;
