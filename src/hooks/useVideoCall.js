@@ -6,6 +6,9 @@ import { axiosInstance } from "../lib/axiosInstance";
 export const useVideoCall = (myUserId) => {
   const [callStatus, setCallStatus] = useState("idle");
   const [incomingCall, setIncomingCall] = useState(null);
+  const [localStream, setLocalStream] = useState(null); // 👈 state, ref nahi
+  const [remoteStream, setRemoteStream] = useState(null); // 👈 state, ref nahi
+
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
@@ -13,37 +16,33 @@ export const useVideoCall = (myUserId) => {
   const otherUserIdRef = useRef(null);
   const socketRef = useRef(null);
 
+  const getIceServers = async () => {
+    try {
+      const res = await axiosInstance.get("/turn-credentials");
+      return [{ urls: "stun:stun.l.google.com:19302" }, ...res.data];
+    } catch {
+      return [{ urls: "stun:stun.l.google.com:19302" }];
+    }
+  };
+
   const getLocalStream = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true,
     });
     localStreamRef.current = stream;
-    if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+    setLocalStream(stream); // 👈 state update — video tag mount hote hi effect isse pakad lega
     return stream;
-  };
-
-  const getIceServers = async () => {
-    try {
-      const res = await axiosInstance.get("/turn-credentials");
-      return [{ urls: "stun:stun.l.google.com:19302" }, ...res.data];
-    } catch (err) {
-      console.log("⚠️ TURN fetch failed, using STUN only fallback");
-      return [{ urls: "stun:stun.l.google.com:19302" }];
-    }
   };
 
   const callUser = useCallback(
     async (toUserId, callerInfo) => {
       const socket = socketRef.current || getSocket();
-      if (!socket) {
-        console.log("⚠️ Socket not ready, cannot start call");
-        return;
-      }
-      otherUserIdRef.current = toUserId;
-      const stream = await getLocalStream();
-      setCallStatus("calling");
+      if (!socket) return;
 
+      otherUserIdRef.current = toUserId;
+      setCallStatus("calling"); // 👈 pehle status set karo taaki video tag mount ho jaaye
+      const stream = await getLocalStream();
       const iceServers = await getIceServers();
 
       const peer = new Peer({
@@ -63,8 +62,7 @@ export const useVideoCall = (myUserId) => {
       });
 
       peer.on("stream", (remoteStream) => {
-        if (remoteVideoRef.current)
-          remoteVideoRef.current.srcObject = remoteStream;
+        setRemoteStream(remoteStream); // 👈 state update
         setCallStatus("connected");
       });
 
@@ -76,25 +74,6 @@ export const useVideoCall = (myUserId) => {
       socket.once("call-accepted", ({ answer }) => {
         peer.signal(answer);
       });
-
-      socket.on("ice-candidate", ({ candidate }) => {
-        if (candidate) peer.signal(candidate);
-      });
-
-      peer.on("connect", () => console.log("✅ Peer data channel connected"));
-
-      peer._pc?.addEventListener("iceconnectionstatechange", () => {
-        console.log("🧊 ICE connection state:", peer._pc.iceConnectionState);
-      });
-
-      peer._pc?.addEventListener("connectionstatechange", () => {
-        console.log("🔗 Connection state:", peer._pc.connectionState);
-      });
-
-      peer.on("error", (err) => {
-        console.log("❌ Peer ERROR:", err.message || err);
-        endCall();
-      });
     },
     [myUserId],
   );
@@ -102,8 +81,9 @@ export const useVideoCall = (myUserId) => {
   const acceptCall = useCallback(async () => {
     const socket = socketRef.current || getSocket();
     if (!incomingCall || !socket) return;
-    const stream = await getLocalStream();
 
+    setCallStatus("connecting"); // 👈 naya status, video tag ko mount karne ke liye
+    const stream = await getLocalStream();
     const iceServers = await getIceServers();
 
     const peer = new Peer({
@@ -118,24 +98,8 @@ export const useVideoCall = (myUserId) => {
     });
 
     peer.on("stream", (remoteStream) => {
-      if (remoteVideoRef.current)
-        remoteVideoRef.current.srcObject = remoteStream;
+      setRemoteStream(remoteStream);
       setCallStatus("connected");
-    });
-
-    peer.on("connect", () => console.log("✅ Peer data channel connected"));
-
-    peer._pc?.addEventListener("iceconnectionstatechange", () => {
-      console.log("🧊 ICE connection state:", peer._pc.iceConnectionState);
-    });
-
-    peer._pc?.addEventListener("connectionstatechange", () => {
-      console.log("🔗 Connection state:", peer._pc.connectionState);
-    });
-
-    peer.on("error", (err) => {
-      console.log("❌ Peer ERROR:", err.message || err);
-      endCall();
     });
 
     peer.on("close", () => endCall());
@@ -143,6 +107,7 @@ export const useVideoCall = (myUserId) => {
 
     peer.signal(incomingCall.offer);
     peerRef.current = peer;
+    otherUserIdRef.current = incomingCall.fromUserId;
     setIncomingCall(null);
   }, [incomingCall]);
 
@@ -164,37 +129,30 @@ export const useVideoCall = (myUserId) => {
     peerRef.current = null;
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
+    setLocalStream(null);
+    setRemoteStream(null);
     otherUserIdRef.current = null;
     setCallStatus("idle");
   }, []);
 
-  // 👇 YAHI wo naya useEffect hai jo poll karta hai jab tak socket ban na jaaye
+  // 👇 socket ready hote hi listeners attach karo
   useEffect(() => {
     let interval;
     let attached = false;
 
     const trySetup = () => {
       const s = getSocket();
-      if (s?.id && !attached) {
-        console.log("socket:", s);
-        console.log("attached:", attached);
+      if (s && !attached) {
         socketRef.current = s;
-        console.log("✅ Socket found, attaching listeners", s.id);
-
         s.on("incoming-call", ({ fromUserId, offer, callerInfo }) => {
-          console.log("📥 incoming-call RECEIVED:", fromUserId);
           setIncomingCall({ fromUserId, offer, callerInfo });
           setCallStatus("ringing");
           otherUserIdRef.current = fromUserId;
         });
-
         s.on("call-ended", () => endCall());
         s.on("call-rejected", () => endCall());
-
         attached = true;
         clearInterval(interval);
-      } else if (!s) {
-        console.log("⏳ Socket not ready yet, retrying...");
       }
     };
 
@@ -211,6 +169,19 @@ export const useVideoCall = (myUserId) => {
       }
     };
   }, [myUserId]);
+
+  // 👇 YAHI ASLI FIX — jab bhi local stream state ya video ref badle, srcObject dobara set karo
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream, callStatus]); // callStatus dependency isliye taaki jab video tag mount ho (re-render ke baad), effect dobara chale
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream, callStatus]);
 
   return {
     callStatus,
