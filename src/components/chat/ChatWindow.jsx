@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { ArrowLeft, MessageCircle, Video } from "lucide-react";
 import Avatar from "../ui/Avatar";
@@ -6,7 +6,11 @@ import Spinner from "../ui/Spinner";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import TypingIndicator from "./TypingIndicator";
-import { getMessages, setSelectedUser } from "../../redux/slices/chatSlice";
+import {
+  getMessages,
+  loadMoreMessages,
+  setSelectedUser,
+} from "../../redux/slices/chatSlice";
 import { useVideoCallContext } from "./VideoCallContext";
 
 export default function ChatWindow() {
@@ -16,19 +20,56 @@ export default function ChatWindow() {
     selectedUser,
     messages,
     isMessagesLoading,
+    isLoadingMore,
+    hasMoreMessages,
     onlineUsers,
     typingUsers,
   } = useSelector((state) => state.chat);
   const { callUser, callStatus } = useVideoCallContext();
   const bottomRef = useRef(null);
+  const scrollContainerRef = useRef(null); // 👈 naya
+  const isFirstLoad = useRef(true); // 👈 taaki initial load pe auto-scroll ho, but load-more pe na ho
 
   useEffect(() => {
-    if (selectedUser) dispatch(getMessages(selectedUser._id));
+    if (selectedUser) {
+      isFirstLoad.current = true;
+      dispatch(getMessages(selectedUser._id));
+    }
   }, [selectedUser, dispatch]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isFirstLoad.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      isFirstLoad.current = false;
+    }
   }, [messages, typingUsers]);
+
+  // 👇 Scroll top ke paas pahunchte hi purane messages load karo
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el || isLoadingMore || !hasMoreMessages) return;
+
+    if (el.scrollTop < 100) {
+      const oldestMessageId = messages[0]?._id;
+      if (oldestMessageId) {
+        const prevScrollHeight = el.scrollHeight;
+        dispatch(
+          loadMoreMessages({
+            userId: selectedUser._id,
+            beforeId: oldestMessageId,
+          }),
+        ).then(() => {
+          // Scroll position preserve karo taaki jump na ho
+          requestAnimationFrame(() => {
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop =
+                scrollContainerRef.current.scrollHeight - prevScrollHeight;
+            }
+          });
+        });
+      }
+    }
+  };
 
   if (!selectedUser) {
     return (
@@ -83,7 +124,16 @@ export default function ChatWindow() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto thin-scroll py-3">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto thin-scroll py-3"
+      >
+        {isLoadingMore && (
+          <div className="flex justify-center py-2">
+            <Spinner size="sm" />
+          </div>
+        )}
         {isMessagesLoading ? (
           <div className="flex justify-center py-10">
             <Spinner />

@@ -75,13 +75,13 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "https://chatxin-backend.onrender.com",
-        // target: "http://localhost:3001",
+        // target: "https://chatxin-backend.onrender.com",
+        target: "http://localhost:3001",
         changeOrigin: true,
       },
       "/socket.io": {
-        target: "https://chatxin-backend.onrender.com",
-        // target: "http://localhost:3001",
+        // target: "https://chatxin-backend.onrender.com",
+        target: "http://localhost:3001",
         changeOrigin: true,
         ws: true,
       },

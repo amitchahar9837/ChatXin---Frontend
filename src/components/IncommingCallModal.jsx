@@ -2,7 +2,6 @@ import { useVideoCallContext } from "./chat/VideoCallContext";
 
 export const IncomingCallModal = () => {
   const { incomingCall, acceptCall, rejectCall } = useVideoCallContext();
-  console.log("🔔 IncomingCallModal rendered, incomingCall:", incomingCall);
 
   if (!incomingCall) return null;
 

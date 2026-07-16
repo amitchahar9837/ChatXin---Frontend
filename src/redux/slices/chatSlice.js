@@ -3,13 +3,15 @@ import toast from "react-hot-toast";
 import { axiosInstance } from "../../lib/axiosInstance";
 
 const initialState = {
-  chats: [], // [{ user, lastMessage, unreadCount }]
+  chats: [],
   messages: [],
   selectedUser: null,
   onlineUsers: [],
-  typingUsers: {}, // { [userId]: true } — sirf open chat nahi, poore sidebar ke liye track hota hai
+  typingUsers: {},
   isChatsLoading: false,
   isMessagesLoading: false,
+  isLoadingMore: false,
+  hasMoreMessages: true,
   isSending: false,
 };
 
@@ -30,7 +32,21 @@ export const getMessages = createAsyncThunk(
   async (userId, { rejectWithValue }) => {
     try {
       const res = await axiosInstance.get(`/message/${userId}`);
-      return res.data.data.messages;
+      return res.data.data; // { messages, hasMore }
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message);
+    }
+  },
+);
+
+export const loadMoreMessages = createAsyncThunk(
+  "chat/loadMoreMessages",
+  async ({ userId, beforeId }, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get(
+        `/message/${userId}?before=${beforeId}&limit=30`,
+      );
+      return res.data.data; // { messages, hasMore }
     } catch (err) {
       return rejectWithValue(err.response?.data?.message);
     }
@@ -65,8 +81,8 @@ const chatSlice = createSlice({
     setSelectedUser: (state, action) => {
       state.selectedUser = action.payload;
       state.messages = [];
+      state.hasMoreMessages = true;
 
-      // Chat open karte hi unread badge clear karo (backend bhi seen mark karega getMessages call mein)
       if (action.payload) {
         const chatIndex = state.chats.findIndex(
           (c) => c.user._id === action.payload._id,
@@ -83,9 +99,6 @@ const chatSlice = createSlice({
     clearUserTyping: (state, action) => {
       delete state.typingUsers[action.payload];
     },
-    // Socket se live aaya naya message. myId zaroori hai taaki "otherUserId" sahi nikle
-    // (pehle ye galti se selectedUser pe depend karta tha, isliye naye/unopened conversation
-    // ka message miss ho jaata tha).
     receiveMessage: (state, action) => {
       const { message: msg, sender, myId } = action.payload;
       const otherUserId = msg.senderId === myId ? msg.receiverId : msg.senderId;
@@ -106,8 +119,6 @@ const chatSlice = createSlice({
         const [chat] = state.chats.splice(chatIndex, 1);
         state.chats.unshift(chat);
       } else if (sender) {
-        // Pehli baar is user ne message bheja hai — sidebar mein naya conversation
-        // turant add karo, reload ka wait nahi karna
         state.chats.unshift({
           user: sender,
           lastMessage: msg,
@@ -143,13 +154,12 @@ const chatSlice = createSlice({
         state.isMessagesLoading = true;
       })
       .addCase(getMessages.fulfilled, (state, action) => {
-        state.messages = action.payload;
+        const { messages, hasMore } = action.payload;
+        state.messages = messages;
+        state.hasMoreMessages = hasMore;
         state.isMessagesLoading = false;
 
-        // Chat open karte waqt sidebar preview bhi sync kar do — kabhi kabhi
-        // socket event miss ho jaata hai (tab background mein tha, reconnect hua, etc.)
-        // toh yahan se bhi source-of-truth theek ho jaata hai
-        const latestMsg = action.payload[action.payload.length - 1];
+        const latestMsg = messages[messages.length - 1];
         if (latestMsg && state.selectedUser) {
           const chatIndex = state.chats.findIndex(
             (c) => c.user._id === state.selectedUser._id,
@@ -173,6 +183,18 @@ const chatSlice = createSlice({
       .addCase(getMessages.rejected, (state) => {
         state.isMessagesLoading = false;
       })
+      .addCase(loadMoreMessages.pending, (state) => {
+        state.isLoadingMore = true;
+      })
+      .addCase(loadMoreMessages.fulfilled, (state, action) => {
+        const { messages, hasMore } = action.payload;
+        state.messages = [...messages, ...state.messages];
+        state.hasMoreMessages = hasMore;
+        state.isLoadingMore = false;
+      })
+      .addCase(loadMoreMessages.rejected, (state) => {
+        state.isLoadingMore = false;
+      })
       .addCase(sendMessage.pending, (state) => {
         state.isSending = true;
       })
@@ -191,7 +213,6 @@ const chatSlice = createSlice({
             const [chat] = state.chats.splice(chatIndex, 1);
             state.chats.unshift(chat);
           } else {
-            // Pehli baar isi user ko message bheja — sidebar mein naya conversation add karo
             state.chats.unshift({ user: state.selectedUser, lastMessage: msg });
           }
         }

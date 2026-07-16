@@ -1,5 +1,6 @@
 import Avatar from "../ui/Avatar";
 import { formatMessageTime } from "../../utils/formatTime";
+import { useSelector } from "react-redux";
 
 export default function ChatListItem({
   chat,
@@ -9,6 +10,7 @@ export default function ChatListItem({
   onClick,
 }) {
   const { user, lastMessage, unreadCount } = chat;
+  const { selectedUser } = useSelector((state) => state.chat);
 
   const preview = isTyping
     ? "typing..."
@@ -43,7 +45,7 @@ export default function ChatListItem({
           >
             {preview}
           </p>
-          {unreadCount > 0 && (
+          {unreadCount > 0 && !selectedUser && (
             <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-marigold text-ink text-[10px] font-bold flex items-center justify-center">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>

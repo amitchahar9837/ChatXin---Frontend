@@ -12,14 +12,23 @@ import {
 export const useSocketListeners = () => {
   const dispatch = useDispatch();
   const { authUser } = useSelector((state) => state.auth);
+  const { selectedUser } = useSelector((state) => state.chat);
 
   useEffect(() => {
     if (!authUser) return;
     const socket = getSocket();
     if (!socket) return;
 
-    const handleNewMessage = ({ message, sender }) =>
+    const handleNewMessage = ({ message, sender }) => {
       dispatch(receiveMessage({ message, sender, myId: authUser._id }));
+      const isChatOpenWithSender = selectedUser?._id === message.senderId;
+      if (isChatOpenWithSender) {
+        socket.emit("markSeen", {
+          messageIds: [message._id],
+          senderId: message.senderId,
+        });
+      }
+    };
     const handleStatusUpdate = (payload) =>
       dispatch(updateMessageStatus(payload));
     const handleSeen = (payload) => dispatch(markMessagesSeenLocally(payload));
