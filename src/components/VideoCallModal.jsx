@@ -46,12 +46,14 @@ const VideoCallModal = () => {
             autoPlay
             playsInline
             className="w-full h-full object-cover"
+            style={{ transform: "scaleX(-1)" }}
           />
           <video
             ref={localVideoRef}
             autoPlay
             playsInline
             muted
+            style={{ transform: "scaleX(-1)" }}
             className="absolute bottom-4 right-4 w-40 h-28 rounded-lg border-2 border-white object-cover"
           />
           <button

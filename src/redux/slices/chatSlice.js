@@ -42,7 +42,7 @@ export const sendMessage = createAsyncThunk(
   async ({ receiverId, text, image }, { rejectWithValue }) => {
     const payload = {
       ...(text.trim().length > 0 && { text }),
-      ...(image && image),
+      ...(image && { image }),
     };
     try {
       const res = await axiosInstance.post(
