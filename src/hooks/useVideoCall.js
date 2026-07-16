@@ -2,12 +2,13 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Peer from "simple-peer";
 import { getSocket } from "../lib/socket";
 import { axiosInstance } from "../lib/axiosInstance";
+import toast from "react-hot-toast";
 
 export const useVideoCall = (myUserId) => {
   const [callStatus, setCallStatus] = useState("idle");
   const [incomingCall, setIncomingCall] = useState(null);
-  const [localStream, setLocalStream] = useState(null); // 👈 state, ref nahi
-  const [remoteStream, setRemoteStream] = useState(null); // 👈 state, ref nahi
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -15,6 +16,23 @@ export const useVideoCall = (myUserId) => {
   const localStreamRef = useRef(null);
   const otherUserIdRef = useRef(null);
   const socketRef = useRef(null);
+  const ringtoneRef = useRef(null);
+  const callTimeoutRef = useRef(null);
+
+  const playRingtone = () => {
+    if (!ringtoneRef.current) {
+      ringtoneRef.current = new Audio("/sounds/ringtone.mp3");
+      ringtoneRef.current.loop = true;
+    }
+    ringtoneRef.current.play().catch(() => {});
+  };
+
+  const stopRingtone = () => {
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+  };
 
   const getIceServers = async () => {
     try {
@@ -31,17 +49,17 @@ export const useVideoCall = (myUserId) => {
       audio: true,
     });
     localStreamRef.current = stream;
-    setLocalStream(stream); // 👈 state update — video tag mount hote hi effect isse pakad lega
+    setLocalStream(stream);
     return stream;
   };
 
   const callUser = useCallback(
-    async (toUserId, callerInfo) => {
+    async (toUserId, callerInfo, receiverName) => {
       const socket = socketRef.current || getSocket();
       if (!socket) return;
 
       otherUserIdRef.current = toUserId;
-      setCallStatus("calling"); // 👈 pehle status set karo taaki video tag mount ho jaaye
+      setCallStatus("calling");
       const stream = await getLocalStream();
       const iceServers = await getIceServers();
 
@@ -62,8 +80,9 @@ export const useVideoCall = (myUserId) => {
       });
 
       peer.on("stream", (remoteStream) => {
-        setRemoteStream(remoteStream); // 👈 state update
+        setRemoteStream(remoteStream);
         setCallStatus("connected");
+        clearTimeout(callTimeoutRef.current);
       });
 
       peer.on("close", () => endCall());
@@ -74,11 +93,20 @@ export const useVideoCall = (myUserId) => {
       socket.once("call-accepted", ({ answer }) => {
         peer.signal(answer);
       });
+
+      callTimeoutRef.current = setTimeout(() => {
+        if (peerRef.current) {
+          toast.error(`${receiverName || "User"} didn't answer the call`);
+          socket.emit("call-timeout", { toUserId });
+          endCall();
+        }
+      }, 30000);
     },
     [myUserId],
   );
 
   const acceptCall = useCallback(async () => {
+    stopRingtone();
     const socket = socketRef.current || getSocket();
     if (!incomingCall || !socket) return;
 
@@ -112,6 +140,7 @@ export const useVideoCall = (myUserId) => {
   }, [incomingCall]);
 
   const rejectCall = useCallback(() => {
+    stopRingtone();
     const socket = socketRef.current || getSocket();
     if (incomingCall && socket) {
       socket.emit("reject-call", { toUserId: incomingCall.fromUserId });
@@ -121,6 +150,8 @@ export const useVideoCall = (myUserId) => {
   }, [incomingCall]);
 
   const endCall = useCallback(() => {
+    stopRingtone();
+    clearTimeout(callTimeoutRef.current);
     const socket = socketRef.current || getSocket();
     if (otherUserIdRef.current && socket) {
       socket.emit("end-call", { toUserId: otherUserIdRef.current });
@@ -135,7 +166,6 @@ export const useVideoCall = (myUserId) => {
     setCallStatus("idle");
   }, []);
 
-  // 👇 socket ready hote hi listeners attach karo
   useEffect(() => {
     let interval;
     let attached = false;
@@ -148,6 +178,7 @@ export const useVideoCall = (myUserId) => {
           setIncomingCall({ fromUserId, offer, callerInfo });
           setCallStatus("ringing");
           otherUserIdRef.current = fromUserId;
+          playRingtone();
         });
         s.on("call-ended", () => endCall());
         s.on("call-rejected", () => endCall());
@@ -170,12 +201,11 @@ export const useVideoCall = (myUserId) => {
     };
   }, [myUserId]);
 
-  // 👇 YAHI ASLI FIX — jab bhi local stream state ya video ref badle, srcObject dobara set karo
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
     }
-  }, [localStream, callStatus]); // callStatus dependency isliye taaki jab video tag mount ho (re-render ke baad), effect dobara chale
+  }, [localStream, callStatus]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {

@@ -27,8 +27,8 @@ export default function ChatWindow() {
   } = useSelector((state) => state.chat);
   const { callUser, callStatus } = useVideoCallContext();
   const bottomRef = useRef(null);
-  const scrollContainerRef = useRef(null); // 👈 naya
-  const isFirstLoad = useRef(true); // 👈 taaki initial load pe auto-scroll ho, but load-more pe na ho
+  const scrollContainerRef = useRef(null);
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     if (selectedUser) {
@@ -44,7 +44,6 @@ export default function ChatWindow() {
     }
   }, [messages, typingUsers]);
 
-  // 👇 Scroll top ke paas pahunchte hi purane messages load karo
   const handleScroll = () => {
     const el = scrollContainerRef.current;
     if (!el || isLoadingMore || !hasMoreMessages) return;
@@ -59,7 +58,6 @@ export default function ChatWindow() {
             beforeId: oldestMessageId,
           }),
         ).then(() => {
-          // Scroll position preserve karo taaki jump na ho
           requestAnimationFrame(() => {
             if (scrollContainerRef.current) {
               scrollContainerRef.current.scrollTop =
@@ -110,10 +108,14 @@ export default function ChatWindow() {
         </div>
         <button
           onClick={() =>
-            callUser(selectedUser._id, {
-              name: authUser.fullName,
-              profilePic: authUser.profilePic,
-            })
+            callUser(
+              selectedUser._id,
+              {
+                name: authUser.fullName,
+                profilePic: authUser.profilePic,
+              },
+              selectedUser.fullName,
+            )
           }
           disabled={!isOnline || callStatus !== "idle"}
           className="p-2 rounded-full hover:bg-surface-2 text-muted hover:text-teal disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
