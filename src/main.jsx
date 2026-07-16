@@ -7,8 +7,7 @@ import { store } from "./redux/store.js";
 import "./index.css";
 import { VideoCallProvider } from "./components/chat/VideoCallContext.jsx";
 import eruda from "eruda";
-import { IncomingCallModal } from "./components/IncommingCallModal.jsx";
-import { CallStatusOverlay } from "./components/CallStatusOverlay.jsx";
+import VideoCallModal from "./components/VideoCallModal.jsx";
 
 eruda.init();
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -17,8 +16,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <VideoCallProvider>
       <BrowserRouter>
         <App />
-        <IncomingCallModal />
-        <CallStatusOverlay />
+        <VideoCallModal />
       </BrowserRouter>
     </VideoCallProvider>
   </Provider>,

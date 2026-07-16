@@ -82,7 +82,7 @@ export const useVideoCall = (myUserId) => {
     const socket = socketRef.current || getSocket();
     if (!incomingCall || !socket) return;
 
-    setCallStatus("connecting"); // 👈 naya status, video tag ko mount karne ke liye
+    setCallStatus("connecting");
     const stream = await getLocalStream();
     const iceServers = await getIceServers();
 
