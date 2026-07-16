@@ -21,7 +21,7 @@ export const useVideoCall = (myUserId) => {
 
   const playRingtone = () => {
     if (!ringtoneRef.current) {
-      ringtoneRef.current = new Audio("/sounds/ringtone.mp3");
+      ringtoneRef.current = new Audio("/assets/ringtone.mp3");
       ringtoneRef.current.loop = true;
     }
     ringtoneRef.current.play().catch(() => {});
