@@ -12,7 +12,9 @@ import {
 export const useSocketListeners = () => {
   const dispatch = useDispatch();
   const { authUser } = useSelector((state) => state.auth);
+  const chat = useSelector((state) => state.chat);
   const { selectedUser } = useSelector((state) => state.chat);
+  console.log(chat);
 
   useEffect(() => {
     if (!authUser) return;
