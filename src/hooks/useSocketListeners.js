@@ -14,7 +14,7 @@ export const useSocketListeners = () => {
   const { authUser } = useSelector((state) => state.auth);
   const chat = useSelector((state) => state.chat);
   const { selectedUser } = useSelector((state) => state.chat);
-  console.log(chat);
+  // console.log("selected:", chat?.selectedUser);
 
   useEffect(() => {
     if (!authUser) return;
@@ -23,8 +23,10 @@ export const useSocketListeners = () => {
 
     const handleNewMessage = ({ message, sender }) => {
       dispatch(receiveMessage({ message, sender, myId: authUser._id }));
-      console.log(selectedUser);
-      const isChatOpenWithSender = selectedUser?._id === message.senderId;
+      const isChatOpenWithSender = chat?.selectedUser?._id === message.senderId;
+      // console.log(isChatOpenWithSender);
+      // console.log(chat?.selectedUser);
+      // console.log(message?.senderId);
       if (isChatOpenWithSender) {
         socket.emit("markSeen", {
           messageIds: [message._id],
