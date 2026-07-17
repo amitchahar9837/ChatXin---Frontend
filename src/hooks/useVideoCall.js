@@ -18,13 +18,22 @@ export const useVideoCall = (myUserId) => {
   const socketRef = useRef(null);
   const ringtoneRef = useRef(null);
   const callTimeoutRef = useRef(null);
+  const vibrateIntervalRef = useRef(null);
 
   const playRingtone = () => {
     if (!ringtoneRef.current) {
-      ringtoneRef.current = new Audio("/assets/ringtone.mp3");
+      ringtoneRef.current = new Audio("/sounds/ringtone.mp3");
       ringtoneRef.current.loop = true;
     }
     ringtoneRef.current.play().catch(() => {});
+
+    if (navigator.vibrate) {
+      const pattern = [500, 300];
+      navigator.vibrate(pattern);
+      vibrateIntervalRef.current = setInterval(() => {
+        navigator.vibrate(pattern);
+      }, 800);
+    }
   };
 
   const stopRingtone = () => {
@@ -32,6 +41,11 @@ export const useVideoCall = (myUserId) => {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
     }
+    if (vibrateIntervalRef.current) {
+      clearInterval(vibrateIntervalRef.current);
+      vibrateIntervalRef.current = null;
+    }
+    if (navigator.vibrate) navigator.vibrate(0);
   };
 
   const getIceServers = async () => {
