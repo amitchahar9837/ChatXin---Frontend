@@ -21,8 +21,8 @@ export const useSocketListeners = () => {
 
     const handleNewMessage = ({ message, sender }) => {
       dispatch(receiveMessage({ message, sender, myId: authUser._id }));
+      console.log(selectedUser?._id, message.senderId);
       const isChatOpenWithSender = selectedUser?._id === message.senderId;
-      console.log(isChatOpenWithSender);
       if (isChatOpenWithSender) {
         socket.emit("markSeen", {
           messageIds: [message._id],

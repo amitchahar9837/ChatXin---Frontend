@@ -17,16 +17,47 @@ export const useVideoCall = (myUserId) => {
   const otherUserIdRef = useRef(null);
   const socketRef = useRef(null);
   const ringtoneRef = useRef(null);
+  const callingToneRef = useRef(null);
   const callTimeoutRef = useRef(null);
   const vibrateIntervalRef = useRef(null);
+  const audioUnlockedRef = useRef(false);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (audioUnlockedRef.current) return;
+      audioUnlockedRef.current = true;
+
+      [ringtoneRef, callingToneRef].forEach((ref) => {
+        if (!ref.current) return;
+        ref.current
+          .play()
+          .then(() => {
+            ref.current.pause();
+            ref.current.currentTime = 0;
+          })
+          .catch(() => {});
+      });
+
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+    };
+
+    ringtoneRef.current = new Audio("/sounds/ringtone.mp3");
+    ringtoneRef.current.loop = true;
+    callingToneRef.current = new Audio("/sounds/callingtone.mp3");
+    callingToneRef.current.loop = true;
+
+    document.addEventListener("click", unlockAudio);
+    document.addEventListener("touchstart", unlockAudio);
+
+    return () => {
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
 
   const playRingtone = () => {
-    if (!ringtoneRef.current) {
-      ringtoneRef.current = new Audio("/sounds/ringtone.mp3");
-      ringtoneRef.current.loop = true;
-    }
-    ringtoneRef.current.play().catch(() => {});
-
+    ringtoneRef.current?.play().catch(() => {});
     if (navigator.vibrate) {
       const pattern = [500, 300];
       navigator.vibrate(pattern);
@@ -46,6 +77,17 @@ export const useVideoCall = (myUserId) => {
       vibrateIntervalRef.current = null;
     }
     if (navigator.vibrate) navigator.vibrate(0);
+  };
+
+  const playCallingTone = () => {
+    callingToneRef.current?.play().catch(() => {});
+  };
+
+  const stopCallingTone = () => {
+    if (callingToneRef.current) {
+      callingToneRef.current.pause();
+      callingToneRef.current.currentTime = 0;
+    }
   };
 
   const getIceServers = async () => {
@@ -74,6 +116,8 @@ export const useVideoCall = (myUserId) => {
 
       otherUserIdRef.current = toUserId;
       setCallStatus("calling");
+      playCallingTone();
+
       const stream = await getLocalStream();
       const iceServers = await getIceServers();
 
@@ -96,7 +140,7 @@ export const useVideoCall = (myUserId) => {
       peer.on("stream", (remoteStream) => {
         setRemoteStream(remoteStream);
         setCallStatus("connected");
-        clearTimeout(callTimeoutRef.current);
+        stopCallingTone(); // 👈 naya
       });
 
       peer.on("close", () => endCall());
@@ -105,6 +149,8 @@ export const useVideoCall = (myUserId) => {
       peerRef.current = peer;
 
       socket.once("call-accepted", ({ answer }) => {
+        clearTimeout(callTimeoutRef.current);
+        setCallStatus("connecting");
         peer.signal(answer);
       });
 
@@ -165,6 +211,7 @@ export const useVideoCall = (myUserId) => {
 
   const endCall = useCallback(() => {
     stopRingtone();
+    stopCallingTone();
     clearTimeout(callTimeoutRef.current);
     const socket = socketRef.current || getSocket();
     if (otherUserIdRef.current && socket) {
@@ -232,6 +279,7 @@ export const useVideoCall = (myUserId) => {
     incomingCall,
     localVideoRef,
     remoteVideoRef,
+    remoteStream,
     callUser,
     acceptCall,
     rejectCall,
