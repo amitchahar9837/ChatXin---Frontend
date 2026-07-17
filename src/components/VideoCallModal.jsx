@@ -26,23 +26,53 @@ const VideoCallModal = () => {
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center">
       {callStatus === "ringing" && incomingCall && (
-        <div className="bg-gray-900 p-6 rounded-xl text-center">
-          <p className="text-white mb-4">
-            {incomingCall.callerInfo?.name || "Someone"} is calling...
-          </p>
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={acceptCall}
-              className="bg-green-500 p-3 rounded-full"
-            >
-              <Video className="text-white" />
-            </button>
-            <button
-              onClick={rejectCall}
-              className="bg-red-500 p-3 rounded-full"
-            >
-              <PhoneOff className="text-white" />
-            </button>
+        <div className="flex flex-col items-center gap-8 animate-in fade-in duration-300">
+          {/* Avatar with pulsing rings */}
+          <div className="relative flex items-center justify-center">
+            <span className="absolute w-40 h-40 rounded-full bg-teal/20 animate-ping" />
+            <span className="absolute w-32 h-32 rounded-full bg-teal/10" />
+            {incomingCall.callerInfo?.profilePic ? (
+              <img
+                src={incomingCall.callerInfo.profilePic}
+                alt={incomingCall.callerInfo?.name}
+                className="relative w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-xl"
+              />
+            ) : (
+              <div className="relative w-24 h-24 rounded-full bg-surface-3 border-4 border-white/20 shadow-xl flex items-center justify-center text-3xl font-semibold text-white">
+                {incomingCall.callerInfo?.name?.[0]?.toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+
+          {/* Name + status */}
+          <div className="text-center">
+            <h2 className="text-white text-2xl font-display font-semibold">
+              {incomingCall.callerInfo?.name || "Someone"}
+            </h2>
+            <p className="text-white/60 text-sm mt-1">Incoming video call...</p>
+          </div>
+
+          {/* Accept / Reject buttons with labels */}
+          <div className="flex gap-16 mt-4">
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={rejectCall}
+                className="bg-red-500 hover:bg-red-600 active:scale-95 transition-all p-5 rounded-full shadow-lg shadow-red-500/30"
+              >
+                <PhoneOff className="text-white" size={26} />
+              </button>
+              <span className="text-white/70 text-xs">Decline</span>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={acceptCall}
+                className="bg-green-500 hover:bg-green-600 active:scale-95 transition-all p-5 rounded-full shadow-lg shadow-green-500/30 animate-bounce"
+              >
+                <Video className="text-white" size={26} />
+              </button>
+              <span className="text-white/70 text-xs">Accept</span>
+            </div>
           </div>
         </div>
       )}
