@@ -60,6 +60,10 @@ export default function ChatWindow() {
         behavior: isFirstLoad.current ? "auto" : "smooth",
       });
       isFirstLoad.current = false;
+    } else if (typingUsers) {
+      bottomRef.current?.scrollIntoView({
+        behavior: "smooth",
+      });
     }
     lastMessageIdRef.current = newLastId;
   }, [messages, typingUsers]);
