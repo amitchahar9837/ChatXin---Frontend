@@ -140,7 +140,7 @@ export const useVideoCall = (myUserId) => {
       peer.on("stream", (remoteStream) => {
         setRemoteStream(remoteStream);
         setCallStatus("connected");
-        stopCallingTone(); // 👈 naya
+        stopCallingTone();
       });
 
       peer.on("close", () => endCall());

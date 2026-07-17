@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getSocket } from "../lib/socket";
 import {
@@ -14,7 +14,12 @@ export const useSocketListeners = () => {
   const { authUser } = useSelector((state) => state.auth);
   const chat = useSelector((state) => state.chat);
   const { selectedUser } = useSelector((state) => state.chat);
+  const chatRef = useRef(chat);
   // console.log("selected:", chat?.selectedUser);
+
+  useEffect(() => {
+    chatRef.current = chat;
+  }, [chat]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -23,10 +28,8 @@ export const useSocketListeners = () => {
 
     const handleNewMessage = ({ message, sender }) => {
       dispatch(receiveMessage({ message, sender, myId: authUser._id }));
-      const isChatOpenWithSender = chat?.selectedUser?._id === message.senderId;
-      // console.log(isChatOpenWithSender);
-      // console.log(chat?.selectedUser);
-      // console.log(message?.senderId);
+      const isChatOpenWithSender =
+        chatRef.current.selectedUser?._id === message.senderId;
       if (isChatOpenWithSender) {
         socket.emit("markSeen", {
           messageIds: [message._id],

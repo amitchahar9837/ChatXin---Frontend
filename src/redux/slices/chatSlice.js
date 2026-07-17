@@ -79,7 +79,6 @@ const chatSlice = createSlice({
   initialState,
   reducers: {
     setSelectedUser: (state, action) => {
-      console.log(action.payload);
       state.selectedUser = action.payload;
       state.messages = [];
       state.hasMoreMessages = true;
