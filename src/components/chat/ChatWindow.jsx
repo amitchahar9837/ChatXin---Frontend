@@ -29,6 +29,7 @@ export default function ChatWindow() {
   const bottomRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const isFirstLoad = useRef(true);
+  const lastMessageIdRef = useRef(null);
 
   useEffect(() => {
     if (selectedUser) {
@@ -36,12 +37,31 @@ export default function ChatWindow() {
       dispatch(getMessages(selectedUser._id));
     }
   }, [selectedUser, dispatch]);
+  useEffect(() => {
+    if (!selectedUser) return;
+    window.history.pushState({ chatOpen: true }, "");
+
+    const handlePopState = (event) => {
+      dispatch(setSelectedUser(null));
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [selectedUser, dispatch]);
 
   useEffect(() => {
-    if (isFirstLoad.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!messages.length) return;
+    const newLastId = messages[messages.length - 1]._id;
+    const isNewMessageAtBottom = newLastId !== lastMessageIdRef.current;
+    if (isFirstLoad.current || isNewMessageAtBottom) {
+      bottomRef.current?.scrollIntoView({
+        behavior: isFirstLoad.current ? "auto" : "smooth",
+      });
       isFirstLoad.current = false;
     }
+    lastMessageIdRef.current = newLastId;
   }, [messages, typingUsers]);
 
   const handleScroll = () => {
@@ -89,7 +109,9 @@ export default function ChatWindow() {
       <div className="flex items-center gap-3 px-4 py-3 border-b border-surface-2">
         <button
           className="md:hidden text-muted hover:text-ink-text"
-          onClick={() => dispatch(setSelectedUser(null))}
+          onClick={() => {
+            window.history.back();
+          }}
         >
           <ArrowLeft size={20} />
         </button>

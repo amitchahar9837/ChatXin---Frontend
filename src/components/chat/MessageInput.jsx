@@ -17,11 +17,17 @@ export default function MessageInput() {
   const emitTyping = () => {
     const socket = getSocket();
     if (!socket || !selectedUser) return;
-    socket.emit("typing", { senderId: authUser._id, receiverId: selectedUser._id });
+    socket.emit("typing", {
+      senderId: authUser._id,
+      receiverId: selectedUser._id,
+    });
 
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
-      socket.emit("stopTyping", { senderId: authUser._id, receiverId: selectedUser._id });
+      socket.emit("stopTyping", {
+        senderId: authUser._id,
+        receiverId: selectedUser._id,
+      });
     }, 1500);
   };
 
@@ -41,7 +47,11 @@ export default function MessageInput() {
     if (!selectedUser) return;
 
     await dispatch(
-      sendMessage({ receiverId: selectedUser._id, text: text.trim(), image: imagePreview })
+      sendMessage({
+        receiverId: selectedUser._id,
+        text: text.trim(),
+        image: imagePreview,
+      }),
     );
 
     setText("");
@@ -50,10 +60,17 @@ export default function MessageInput() {
   };
 
   return (
-    <form onSubmit={handleSend} className="border-t border-surface-2 p-3 bg-ink">
+    <form
+      onSubmit={handleSend}
+      className="border-t border-surface-2 p-3 bg-ink"
+    >
       {imagePreview && (
         <div className="relative inline-block mb-2 ml-1">
-          <img src={imagePreview} alt="preview" className="w-20 h-20 object-cover rounded-lg" />
+          <img
+            src={imagePreview}
+            alt="preview"
+            className="w-20 h-20 object-cover rounded-lg"
+          />
           <button
             type="button"
             onClick={() => setImagePreview(null)}
@@ -71,7 +88,13 @@ export default function MessageInput() {
         >
           <ImageIcon size={20} />
         </button>
-        <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleImageSelect} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={handleImageSelect}
+        />
         <input
           value={text}
           onChange={(e) => {
@@ -83,6 +106,7 @@ export default function MessageInput() {
         />
         <button
           type="submit"
+          onMouseDown={(e) => e.preventDefault()}
           disabled={isSending || (!text.trim() && !imagePreview)}
           className="p-2.5 rounded-xl bg-marigold text-ink disabled:opacity-40 hover:bg-marigold/90 transition-colors"
         >
